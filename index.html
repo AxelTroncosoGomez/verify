@@ -1,36 +1,55 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Email Verified</title>
-  <script type="module">
-    import { createClient } from 'https://esm.sh/@supabase/supabase-js'
-
-    const supabase = createClient(
-      'https://nzfrskgdvdhdfghjtaks.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im56ZnJza2dkdmRoZGZnaGp0YWtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MzAwMTMsImV4cCI6MjA2ODEwNjAxM30.Y9ub1e4oaIDoIGXxoAJkC_WJtZVxknSlRpOfID0EYVE'
-    );
-
-    const url = new URL(window.location.href);
-    const access_token = url.searchParams.get('access_token');
-    const type = url.searchParams.get('type');
-
-    if (access_token && type === 'signup') {
-      // Let user know
-      document.body.innerHTML = "<h2>✅ Your email is verified! You can now return to the app.</h2>";
-
-      // Optionally: Store in localStorage for desktop app pickup
-      localStorage.setItem("verified", "true");
-
-      // Optional: Redirect to app or wait
-      setTimeout(() => {
-        window.close(); // Closes browser tab (works in some environments)
-      }, 3000);
-    } else {
-      document.body.innerHTML = "<h2>❌ Invalid or missing verification token.</h2>";
-    }
-  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Verify Email</title>
 </head>
 <body>
-  <h2>Verifying...</h2>
+  <div id="output"></div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    const supabaseUrl = 'https://nzfrskgdvdhdfghjtaks.supabase.co'; // your real project
+    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im56ZnJza2dkdmRoZGZnaGp0YWtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MzAwMTMsImV4cCI6MjA2ODEwNjAxM30.Y9ub1e4oaIDoIGXxoAJkC_WJtZVxknSlRpOfID0EYVE'; // Replace with your anon key
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const output = document.getElementById('output');
+
+    function showMessage(html) {
+      output.innerHTML = html;
+    }
+
+    // Get token from either hash (#access_token=...) or search params (?token=...)
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const searchParams = new URLSearchParams(window.location.search);
+
+    const accessToken = hashParams.get('access_token');
+    const refreshToken = hashParams.get('refresh_token');
+
+    const tokenFromQuery = searchParams.get('token');
+    const type = searchParams.get('type');
+
+    if (accessToken && refreshToken) {
+      // Case 1: Already logged in
+      showMessage('<h2>✅ Email verified successfully. Access token obtained.</h2>');
+    } else if (tokenFromQuery && type === 'signup') {
+      // Case 2: Verification flow with token and type
+      const { error } = await supabase.auth.verifyOtp({
+        type: 'signup',
+        token: tokenFromQuery
+      });
+
+      if (error) {
+        showMessage(`<h2>❌ Verification failed: ${error.message}</h2>`);
+      } else {
+        showMessage('<h2>✅ Email verified successfully.</h2>');
+      }
+    } else {
+      // Case 3: Invalid or missing token
+      showMessage('<h2>❌ Invalid or missing verification token.</h2>');
+    }
+  </script>
 </body>
 </html>
